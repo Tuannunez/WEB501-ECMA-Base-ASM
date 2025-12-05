@@ -1,115 +1,86 @@
 import { useState, useEffect } from "react";
-import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
-import axios from "axios";
+import toast from "react-hot-toast";
 
-function ListPage() {
-  const [tours, setTours] = useState([]);
+const API_PRODUCTS = "http://localhost:3001/products";
 
-  useEffect(() => {
-    const getTours = async () => {
-      try {
-        const { data } = await axios.get("http://localhost:3001/tours");
-        setTours(data);
-      } catch (error) {
-        toast.error("Không thể tải:", error);
-      }
-    };
-    getTours();
-  }, []);
-  
-  const handleDelete = async (id) => {
-    if (!confirm("bạn cóc chắc chắn muốn xóa k")) return;
+export default function ListPage() {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+
+  const loadData = async () => {
+    setLoading(true);
     try {
-      await axios.delete(`http://localhost:3001/tours/${id}`);
-      setTours(tours.filter((tour) => tour.id !== id));
+      const res = await fetch(API_PRODUCTS);
+      if (!res.ok) throw new Error("Lỗi tải dữ liệu");
+      const json = await res.json();
+      setData(json);
     } catch (error) {
-      toast.error("Không thể tải:", err);
+      console.error(error);
+      toast.error("Lỗi: " + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
+  useEffect(() => {
+    loadData();
+  }, []);
+
+
+  const removeItem = async (id) => {
+    if (!window.confirm("Bạn chắc chắn muốn xóa?")) return;
+    
+    try {
+      const res = await fetch(`${API_PRODUCTS}/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Lỗi xóa sản phẩm");
+      toast.success("Xóa thành công!");
+      loadData();
+    } catch (error) {
+      console.error(error);
+      toast.error("Lỗi: " + error.message);
+    }
+  };
+
+
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-6">Danh sách Tours</h1>
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-bold">Danh sách sản phẩm</h2>
+        <Link to="/add" className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+          + Thêm mới
+        </Link>
+      </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full border border-gray-300 rounded-lg">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-4 py-2 border">ID</th>
-              <th className="px-4 py-2 border">Tên Tour</th>
-              <th className="px-4 py-2 border">Giá</th>
-              <th className="px-4 py-2 border">Thời gian</th>
+      {loading && <p className="text-center text-gray-500">Đang tải...</p>}
 
-              {/* 🆕 THÊM CÁC TRƯỜNG DỮ LIỆU NGAY TẠI ĐÂY */}
-              <th className="px-4 py-2 border">Địa điểm</th>
-              <th className="px-4 py-2 border">Số chỗ</th>
-              <th className="px-4 py-2 border">Hình ảnh</th>
-              <th className="px-4 py-2 border">Mô tả</th>
+      {!loading && data.length === 0 && (
+        <p className="text-center text-gray-500">Không có sản phẩm nào</p>
+      )}
 
-              <th className="px-4 py-2 border">Hành động</th>
-            </tr>
-          </thead>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {data.map((item) => (
+          <div key={item.id} className="border p-4 rounded shadow hover:shadow-lg transition">
+            {item.image && <img src={item.image} alt={item.name} className="h-40 w-full object-cover rounded" />}
+            <h3 className="text-xl font-semibold mt-2">{item.name}</h3>
+            <p className="text-lg font-bold text-green-600">Giá: {Number(item.price).toLocaleString()}đ</p>
+            {item.location && <p className="text-gray-600">Khu vực: {item.location}</p>}
 
-          <tbody>
-            {tours.map((tour) => (
-              <tr key={tour.id} className="hover:bg-gray-50">
-                <td className="px-4 py-2 border">{tour.id}</td>
-                <td className="px-4 py-2 border font-medium">{tour.name}</td>
-
-                <td className="px-4 py-2 border">
-                  {tour.price?.toLocaleString("vi-VN")} VNĐ
-                </td>
-
-                <td className="px-4 py-2 border">{tour.duration}</td>
-
-                {/* 🆕 THÊM DỮ LIỆU */}
-                <td className="px-4 py-2 border">{tour.location}</td>
-
-                <td className="px-4 py-2 border">{tour.slots}</td>
-
-                <td className="px-4 py-2 border">
-                  <img
-                    src={tour.image}
-                    alt={tour.name}
-                    className="w-16 h-12 object-cover rounded"
-                  />
-                </td>
-
-                <td className="px-4 py-2 border text-sm">
-                  {tour.description?.slice(0, 40)}...
-                </td>
-
-                <td className="px-4 py-2 border space-x-2">
-                  <Link
-                    to={`/edit/${tour.id}`}
-                    className="text-indigo-600 hover:text-indigo-800"
-                  >
-                    Sửa
-                  </Link>
-
-                  <button
-                    onClick={() => handleDelete(tour.id)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    Xóa
-                  </button>
-                </td>
-              </tr>
-            ))}
-
-            {tours.length === 0 && (
-              <tr>
-                <td colSpan="10" className="px-4 py-4 text-center text-gray-500">
-                  Không có tour nào trong danh sách.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+            <div className="flex gap-2 mt-4">
+              <Link to={`/edit/${item.id}`} className="flex-1 text-center px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+                Sửa
+              </Link>
+              <button 
+                onClick={() => removeItem(item.id)} 
+                className="flex-1 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Xóa
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
-
-export default ListPage;

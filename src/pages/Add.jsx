@@ -1,149 +1,99 @@
 import { useState } from "react";
-import { toast } from "react-hot-toast";
-import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
-function AddPage() {
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [category, setCategory] = useState("");
-  const [duration, setDuration] = useState("");
-  const [location, setLocation] = useState("");
-  const [slots, setSlots] = useState("");
-  const [image, setImage] = useState("");
-  const [description, setDescription] = useState("");
+const API_PRODUCTS = "http://localhost:3001/products";
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+export default function AddPage() {
+  const navigate = useNavigate();
+
+  const [form, setForm] = useState({ name: "", price: "", image: "", location: "" });
+  const [loading, setLoading] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    
+    if (!form.name.trim()) {
+      toast.error("Vui lòng nhập tên sản phẩm!");
+      return;
+    }
+    if (!form.price || form.price <= 0) {
+      toast.error("Vui lòng nhập giá hợp lệ!");
+      return;
+    }
+
+    setLoading(true);
     try {
-      await axios.post("http://localhost:3001/tours", {
-        name,
-        price: Number(price),
-        category,
-        duration,
-        location,
-        slots: Number(slots),
-        image,
-        description,
+      const response = await fetch(API_PRODUCTS, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          price: Number(form.price),
+          image: form.image || "",
+          location: form.location || ""
+        }),
       });
 
-      toast.success("Thêm tour thành công");
+      if (!response.ok) throw new Error("Lỗi khi thêm sản phẩm");
 
-      // reset form
-      setName("");
-      setPrice("");
-      setCategory("");
-      setDuration("");
-      setLocation("");
-      setSlots("");
-      setImage("");
-      setDescription("");
-
+      toast.success("Thêm sản phẩm thành công!");
+      navigate("/list");
     } catch (error) {
-      toast.error(error.message);
+      console.error(error);
+      toast.error("Không thể thêm sản phẩm: " + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
+
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-6">Thêm mới Tour</h1>
+    <div className="max-w-md mx-auto p-6 shadow border rounded">
+      <h2 className="text-3xl font-bold mb-4 text-center">Thêm sản phẩm</h2>
+      <form onSubmit={submit} className="space-y-4">
+        <input 
+          placeholder="Tên sản phẩm" 
+          className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          disabled={loading}
+        />
 
-      <form className="space-y-6" onSubmit={handleSubmit}>
-        
-        <div>
-          <label className="block font-medium mb-1">Tên Tour</label>
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            type="text"
-            className="w-full border rounded-lg px-3 py-2"
-          />
-        </div>
+        <input 
+          placeholder="Giá" 
+          type="number"
+          className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={form.price}
+          onChange={(e) => setForm({ ...form, price: e.target.value })}
+          min="0"
+          step="0.01"
+          disabled={loading}
+        />
 
-        <div>
-          <label className="block font-medium mb-1">Giá</label>
-          <input
-            value={price}
-            onChange={(event) => setPrice(event.target.value)}
-            type="number"
-            className="w-full border rounded-lg px-3 py-2"
-          />
-        </div>
+        <input 
+          placeholder="Ảnh (URL)" 
+          className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={form.image}
+          onChange={(e) => setForm({ ...form, image: e.target.value })}
+          disabled={loading}
+        />
 
-        <div>
-          <label className="block font-medium mb-1">Danh mục</label>
-          <select
-            value={category}
-            onChange={(event) => setCategory(event.target.value)}
-            className="w-full border rounded-lg px-3 py-2"
-          >
-            <option value="">-- Chọn loại tour --</option>
-            <option value="1">Tour nội địa</option>
-            <option value="2">Tour ngoại quốc</option>
-          </select>
-        </div>
+        <input 
+          placeholder="Khu vực" 
+          className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={form.location}
+          onChange={(e) => setForm({ ...form, location: e.target.value })}
+          disabled={loading}
+        />
 
-        {/* 🆕 THÊM CÁC TRƯỜNG DỮ LIỆU */}
-        <div>
-          <label className="block font-medium mb-1">Thời gian</label>
-          <input
-            value={duration}
-            onChange={(e) => setDuration(e.target.value)}
-            type="text"
-            placeholder="VD: 3 ngày 2 đêm"
-            className="w-full border rounded-lg px-3 py-2"
-          />
-        </div>
-
-        <div>
-          <label className="block font-medium mb-1">Địa điểm</label>
-          <input
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            type="text"
-            placeholder="VD: Đà Nẵng"
-            className="w-full border rounded-lg px-3 py-2"
-          />
-        </div>
-
-        <div>
-          <label className="block font-medium mb-1">Số chỗ</label>
-          <input
-            value={slots}
-            onChange={(e) => setSlots(e.target.value)}
-            type="number"
-            className="w-full border rounded-lg px-3 py-2"
-          />
-        </div>
-
-        <div>
-          <label className="block font-medium mb-1">Hình ảnh (URL)</label>
-          <input
-            value={image}
-            onChange={(e) => setImage(e.target.value)}
-            type="text"
-            className="w-full border rounded-lg px-3 py-2"
-          />
-        </div>
-
-        <div>
-          <label className="block font-medium mb-1">Mô tả</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2"
-            rows="3"
-          ></textarea>
-        </div>
-
-        <button
-          type="submit"
-          className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        <button 
+          className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={loading}
         >
-          Submit
+          {loading ? "Đang thêm..." : "Thêm mới"}
         </button>
       </form>
     </div>
   );
 }
-
-export default AddPage;
